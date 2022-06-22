@@ -24,8 +24,24 @@ import { SketchPicker } from 'react-color';
 
 
 const InputSlider = (props) => {
+  let initialVal = 30;
+
+  if (props.name.split(" ").join("-") == "Canvas-Font-Size") {
+    initialVal = 60;
+  }
+  else if (props.name.split(" ").join("-") == "ASCII-Font-Size") {
+    initialVal = 5;
+  }
+
+  else if (props.name.split(" ").join("-") == "Art-Size") {
+    initialVal = 250;
+  }
+
+  else if (props.name.split(" ").join("-") == "Canvas-Font-Size") {
+    initialVal = 60;
+  }
   const [value, setValue] = React.useState(
-    30
+    initialVal
   );
 
   const handleSliderChange = (event, newValue) => {
@@ -72,7 +88,7 @@ const InputSlider = (props) => {
             onBlur={handleBlur}
             inputProps={{
               step: 1,
-              min: 0,
+              min: 1,
               max: 400,
               type: 'number',
               'aria-labelledby': 'input-slider',
@@ -161,18 +177,36 @@ const SearchAppBar = () => {
     </Box>
   );
 }
+/**
+  * @param {string} char 
+  * @returns {boolean} 
+*/
+function isSpace(char) {
+  if (char == " ") {
+    return true;
+  }
+  for (let i = 0; i < char.length; i++) {
+    if (char[i] != " ") {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 class TextGenerator extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      text: [],
+      text: "hi!",
       emHeight: 0,
       emWidth: 0,
       fontSize: '30px',
       color: '#ffffff',
+      ASCII_CHARS: [' ', '.', ':', '-', '+', '*', '?', '%', 'S', '#', '.', '@', '&', '$', '!', ';', ','],
     };
   }
+
 
   draw = () => {
 
@@ -180,7 +214,8 @@ class TextGenerator extends React.Component {
     var d = document.createElement("span",);
     // d.style.visibility = 'hidden';
     d.style.fontSize = this.state.fontSize;
-    d.style.fontFamily = '"Arial"';
+    d.style.fontFamily = '"sans-serif"';
+
     // no line-break
     d.style.whiteSpace = 'nowrap';
     d.style.display = 'inline';
@@ -191,12 +226,12 @@ class TextGenerator extends React.Component {
     if (msg.length > 1) {
       height = d.offsetHeight * (msg.length);
     }
+    console.log(msg.length)
     this.setState({
       text: msg,
-      emWidth: d.offsetWidth + d.offsetWidth / 30,
+      emWidth: d.offsetWidth + d.offsetWidth * 0.2,
       emHeight: height,
-    }, () => {
-
+    }, (e) => {
       document.body.removeChild(d);
       var canvas = document.getElementById('idCanvas');
       var context = canvas.getContext('2d');
@@ -204,8 +239,9 @@ class TextGenerator extends React.Component {
       context.width = this.state.emWidth;
       context.height = this.state.emHeight;
       // context.fillRect(0, 0, canvas.width, canvas.height);
-      context.font = this.state.fontSize + " Arial";
+      context.font = this.state.fontSize + " sans-serif";
       context.fillStyle = this.state.color;
+
       // console.log(msg, context.font, document.getElementById('inp').value.replaceAll('\n', '<br>'));
       if (msg.length > 1 && msg[0].length > 0) {
         for (var i = 0; i < msg.length; i++) {
@@ -222,8 +258,6 @@ class TextGenerator extends React.Component {
 
       }
 
-
-
       var canvas = document.getElementById('idCanvas');
       var dataURL = canvas.toDataURL();
       // document.getElementById('img').src = dataURL;
@@ -234,7 +268,7 @@ class TextGenerator extends React.Component {
         image.resize(new_width, new_height);
         image = image.grayscale();
         var luminances = []
-        var ASCII_CHARS = [' ', '.', ':', '-', '+', '*', '?', '%', 'S', '#', 'o', '@', '&', '$', '!', ';', ','];
+        var ASCII_CHARS = JSON.parse(document.getElementById("input-ascii").value)
         image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (x, y, idx) {
           var red = this.bitmap.data[idx];
           var green = this.bitmap.data[idx + 1];
@@ -257,9 +291,14 @@ class TextGenerator extends React.Component {
           // if (row_chars.indexOf('@') != -1 || ascii_str.slice(-100, -1).indexOf('@') != -1) {
           //   ascii_str += row_chars + '\n';
           // }
-          ascii_str += row_chars + '\n';
+          console.log(row_chars.split())
+          if (!isSpace(row_chars)) {
+            ascii_str += row_chars + '\n';
+          }
+
         }
         document.getElementById('text').innerHTML = ascii_str;
+        document.getElementById('text').style.fontSize = document.getElementById('input-ASCII-Font-Size').value;
 
       });
 
@@ -268,84 +307,131 @@ class TextGenerator extends React.Component {
 
   };
 
+  componentDidMount() {
+    this.draw();
+  }
+
   render() {
     return (
       <div className="App">
         <SearchAppBar />
 
-        <header className="App-header">
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={{ xs: 1, sm: 2, md: 4 }}
-          >
-            <InputSlider changeHandler={(value) => {
-              this.setState({ fontSize: value + 'px' },
-                () => {
+        <header className="App-header" style={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+        }}>
+          <Box>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 1, sm: 2, md: 4 }}
+            >
+              <TextField
+                value={JSON.stringify(this.state.ASCII_CHARS)}
+                size="small"
+                id={"input-ascii"}
+                onChange={(e) => {
+                  this.setState({ ASCII_CHARS: JSON.parse(e.target.value) })
                   this.draw();
-                }
-              )
+                }}
 
-            }} name="Font Size" />
-            <InputSlider name="Art Size"
-              changeHandler={(value) => {
-                this.draw();
-              }}
-
-            />
-            <InputSlider name="Spacing" />
-            <SketchPicker color={this.state.color}
-              onChangeComplete={(color) => {
-                this.setState({ color: color.hex },
+              />
+              <InputSlider changeHandler={(value) => {
+                this.setState({ fontSize: value + 'px' },
                   () => {
-                    // this.draw();
+                    this.draw();
                   }
                 )
-              }} />
 
-          </Stack>
+              }} name="Canvas Font Size" />
 
-          <div style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'center',
-            width: '80%',
+            </Stack>
 
-          }}>
-            <pre float='left' id='text'
-              style={{
-                width: '80%',
-                overflow: 'scroll',
-                wordWrap: 'break-word',
-                webkitNbspMode: 'space',
-                lineBreak: 'after-white-space',
-                WebkitUserModify: 'read-write',
-              }}
-            ></pre>
-          </div>
-          {/* <textarea id='inp' placeholder='text' style={{
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 1, sm: 2, md: 4 }}
+            >
+              <InputSlider name="Art Size"
+                changeHandler={(value) => {
+                  this.draw();
+                }}
+
+              />
+              <InputSlider name="ASCII Font Size"
+                changeHandler={(value) => {
+                  this.draw();
+                }}
+
+              />
+              <InputSlider name="Spacing" />
+
+
+            </Stack>
+
+
+            <div style={{
+              marginTop: '30px',
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              width: '80%',
+
+            }}>
+              <pre 
+              // float='left' 
+              id='text'
+                style={{
+                  width: '80%',
+                  overflow: 'scroll',
+                  wordWrap: 'break-word',
+                  // webkitNbspMode: 'space',
+                  lineBreak: 'after-white-space',
+                  fontSize: document.getElementById('input-ASCII-Font-Size') ? document.getElementById('input-ASCII-Font-Size').value + 'px' : '30px',
+                  WebkitUserModify: 'read-write',
+                }}
+              ></pre>
+            </div>
+            {/* <textarea id='inp' placeholder='text' style={{
             multiline: 'true',
           }}
             onChange={this.draw}
 
           /> */}
-          <TextField
-            id="inp"
-            label="Enter text"
-            multiline
-            placeholder='text'
-            variant="standard"
-            onChange={this.draw}
-          />
-          <Button variant="contained" onClick={this.draw}
-            style={{
-              marginTop: '10px',
-              marginBottom: '10px',
-            }}
-          >Draw</Button>
-          <canvas style={{
-            display: 'none',
-          }} id="idCanvas" width={this.state.emWidth} height={this.state.emHeight}></canvas>
+
+            <TextField
+              style={{
+                marginTop: '30px',
+              }}
+              id="inp"
+              label="Enter text"
+              multiline
+              value={this.state.text}
+              placeholder='text'
+              variant="standard"
+              onChange={this.draw}
+            />
+            <Button variant="contained" onClick={this.draw}
+              style={{
+                marginTop: '10px',
+                marginBottom: '10px',
+              }}
+            >Draw</Button>
+            <canvas style={{
+              display: 'none',
+            }} id="idCanvas" width={this.state.emWidth} height={this.state.emHeight}></canvas>
+          </Box>
+          <SketchPicker color={this.state.color}
+            onChangeComplete={(color) => {
+              this.setState({ color: color.hex },
+                () => {
+                  // this.draw();
+                }
+              )
+            }} />
         </header>
+
+
+
       </div>
     );
   }
